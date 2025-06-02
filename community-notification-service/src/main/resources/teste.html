@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>🔔 Notifications Ahmed</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+<h2>🔔 Notifications reçues pour Ahmed</h2>
+<p>Utilisateur connecté : <strong id="userId">68230cd26f5ba44872c3f2c0</strong></p>
+<ul id="notifications"></ul>
+
+<script>
+    const userId = document.getElementById('userId').textContent;
+    const jwtToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI2ODIzMGNkMjZmNWJhNDQ4NzJjM2YyYzAiLCJhdXRob3JpdGllcyI6WyJST0xFX1RSQVZFTEVSIl0sInN1YiI6ImFobWVkQGdtYWlsLmNvbSIsImlhdCI6MTc0ODQyMzcwNiwiZXhwIjoxNzQ4NDY2OTA2fQ.k9P3Rlx4rtQZjc09gbJnVY-at86jH4znyaSRvmZaN6I";
+
+    const socket = new SockJS("http://localhost:8085/ws");
+    const stompClient = Stomp.over(socket);
+
+    stompClient.connect({ Authorization: "Bearer " + jwtToken }, () => {
+        stompClient.subscribe(`/topic/notifications/${userId}`, (message) => {
+            const notification = JSON.parse(message.body);
+            const li = document.createElement('li');
+            li.innerText = `📨 Notification : ${notification.message}`;
+            document.getElementById('notifications').appendChild(li);
+        });
+    });
+</script>
+</body>
+</html>

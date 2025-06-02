@@ -1,0 +1,72 @@
+server:
+  port: 8083
+
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: CONTENT-SERVICE
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/moveAuth
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  cloud:
+    loadbalancer:
+      ribbon:
+        enabled: false
+      retry:
+        enabled: true
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 10
+  instance:
+    prefer-ip-address: true
+    hostname: localhost
+    instance-id: ${spring.application.name}:${server.port}
+    lease-renewal-interval-in-seconds: 10
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    com.move.contentservice: DEBUG
+    org.springframework.data.mongodb: DEBUG
+
+file:
+  upload-dir: ./uploads
+
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:3000,http://localhost:8080"
+  allowed-methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+  allowed-headers: "Authorization,Content-Type,Accept,Origin,X-Requested-With,X-Auth-User,X-Auth-Roles,x-user-id"
+  exposed-headers: "Authorization,X-Auth-User,X-Auth-Roles,x-user-id"
+  allow-credentials: true
+  max-age: 3600
+
+# RabbitMQ Event Routing
+content:
+  events:
+    exchange: content.events.exchange
+    content-created-routing-key: content.created
+    content-updated-routing-key: content.updated
+    content-deleted-routing-key: content.deleted
+
+jwt:
+  secret: bW92ZVNlY3JldEtleTg3MzI0ODczMjRzZGpmaHNqa2FoZjM0OTg3MzQwOTg3c2Rmc2RpdWg0ODczMjQ=
+  expiration: 43200000  # 12 heures
+  refresh-expiration: 2592000000  # 30 jours

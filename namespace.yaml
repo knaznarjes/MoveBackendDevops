@@ -1,0 +1,44 @@
+# namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: move-app
+  labels:
+    name: move-app
+---
+# configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: move-app-config
+  namespace: move-app
+data:
+  # Database URLs
+  MONGODB_URI: "mongodb://mongodb-service:27017/moveAuth"
+  ELASTICSEARCH_URI: "http://elasticsearch-service:9200"
+  RABBITMQ_HOST: "rabbitmq-service"
+
+  # Service Discovery
+  EUREKA_SERVER: "http://discovery-service:8761/eureka/"
+
+  # Application Configuration
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+
+  # JWT Configuration (non-sensitive part)
+  JWT_EXPIRATION: "43200000"
+  JWT_REFRESH_EXPIRATION: "2592000000"
+---
+# secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: move-app-secrets
+  namespace: move-app
+type: Opaque
+data:
+  # Base64 encoded values
+  mongodb-username: YWRtaW4=  # admin
+  mongodb-password: cGFzc3dvcmQ=  # password
+  jwt-secret: Ym92ZVNlY3JldEtleTg3MzI0ODczMjRzZGpmaHNqa2FoZjM0OTg3MzQwOTg3c2Rmc2RpdWg0ODczMjQ=
+  rabbitmq-username: Z3Vlc3Q=  # guest
+  rabbitmq-password: Z3Vlc3Q=  # guest

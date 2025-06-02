@@ -1,0 +1,14 @@
+# Fichiers à ignorer lors du build Docker
+target/
+!target/*.jar
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+*.md
+.idea/
+.vscode/
+.settings/
+.project
+.classpath

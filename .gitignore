@@ -1,0 +1,25 @@
+# Maven / Gradle
+/target/
+/build/
+
+# IDEs
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.jar
+
+# Env vars
+.env
+
+# Node/Angular (si frontend dans le projet)
+node_modules/
+dist/

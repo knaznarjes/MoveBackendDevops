@@ -1,0 +1,160 @@
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 200
+    connection-timeout: 5000
+    max-connections: 8192
+    accept-count: 100
+
+spring:
+  application:
+    name: API-GATEWAY
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:4200,http://localhost:3000,http://localhost:8080"
+            allowedMethods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+            allowedHeaders: "Authorization,Content-Type,Accept,Origin,X-Requested-With,X-Auth-User,X-Auth-Roles,x-user-id"
+            exposedHeaders: "Authorization,X-Auth-User,X-Auth-Roles,x-user-id"
+            allowCredentials: true
+            maxAge: 3600
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+    discovery:
+      locator:
+        enabled: true
+        lower-case-service-id: true
+    loadbalancer:
+      ribbon:
+        enabled: false
+      retry:
+        enabled: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    registry-fetch-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    lease-renewal-interval-in-seconds: 10
+    hostname: localhost
+
+jwt:
+  secret: bW92ZVNlY3JldEtleTg3MzI0ODczMjRzZGpmaHNqa2FoZjM0OTg3MzQwOTg3c2Rmc2RpdWg0ODczMjQ=
+  expiration: 43200000  # 12 heures
+  refresh-expiration: 2592000000  # 30 jours
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web: DEBUG
+    com.move.apigateway: DEBUG
+    com.move.apigateway.security.JwtAuthenticationFilter: DEBUG
+    org.springframework.security: DEBUG
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+    reactor.netty.http.client: INFO
+
+# CORS Configuration - CORRIGÉ avec x-user-id
+cors:
+  allowed-origins: "http://localhost:4200,http://localhost:3000,http://localhost:8080"
+  allowed-methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+  allowed-headers: "Authorization,Content-Type,Accept,Origin,X-Requested-With,X-Auth-User,X-Auth-Roles,x-user-id"
+  exposed-headers: "Authorization,X-Auth-User,X-Auth-Roles,x-user-id"
+  allow-credentials: true
+  max-age: 3600
+
+auth:
+  public-endpoints: >
+    /api/auth/register,
+    /api/auth/login,
+    /api/auth/refresh-token,
+    /api/auth/refresh,
+    /debug-token,
+    /service-discovery-status,
+    /test-auth-token,
+    /debug-auth-headers,
+    /test-routing,
+    /auth-health,
+    /actuator/**,
+    /fallback/**,
+    /health,
+    /api/media/file/**,
+    /api/media/files/**,
+    /api/media/cover/**
+
+routes:
+  public:
+    - /api/auth/register
+    - /api/auth/login
+    - /api/auth/refresh-token
+    - /api/auth/refresh
+    - /debug-token
+    - /service-discovery-status
+    - /test-auth-token
+    - /debug-auth-headers
+    - /test-routing
+    - /auth-health
+    - /actuator/**
+    - /fallback/**
+    - /health
+    - /api/media/file/**
+    - /api/media/files/**
+    - /api/search/**
+    - /api/sync/**
+    - /api/recommendation/**
+    - /ws/**
+
+  admin:
+    - /api/admin/**
+
+  authenticated:
+    - /api/users/**
+    - /api/accounts/**
+    - /api/preferences/**
+    - /api/contents/**
+    - /api/activity-points/**
+    - /api/locations/**
+    - /api/media/**
+    - /api/itinerary-days/**
+    - /api/search/**
+    - /api/comments/**
+    - /api/notifications/**
+
+  static:
+    - /static/**
+    - /favicon.ico
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      serviceDefault:
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 5000
+        failureRateThreshold: 50

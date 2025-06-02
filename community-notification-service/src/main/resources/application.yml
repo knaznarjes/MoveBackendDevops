@@ -1,0 +1,96 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: COMMUNITY-SERVICE
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/moveAuth
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+          multiplier: 2
+          max-interval: 10000
+        acknowledge-mode: auto
+        concurrency: 1
+        max-concurrency: 10
+        prefetch: 1
+        default-requeue-rejected: false
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000
+        max-attempts: 3
+        multiplier: 2
+        max-interval: 10000
+      mandatory: true
+
+jwt:
+  secret: bW92ZVNlY3JldEtleTg3MzI0ODczMjRzZGpmaHNqa2FoZjM0OTg3MzQwOTg3c2Rmc2RpdWg0ODczMjQ=
+  expiration: 43200000  # 12 heures
+  refresh-expiration: 2592000000
+
+# Configuration Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    fetch-registry: true
+    register-with-eureka: true
+    registry-fetch-interval-seconds: 30
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
+# Configuration des logs
+logging:
+  level:
+    com.move.communitynotificationservice: DEBUG
+    org.springframework.amqp: INFO
+    org.springframework.messaging: INFO
+    org.springframework.web.socket: DEBUG
+    org.springframework.cloud.netflix: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Configuration de monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Configuration des timeouts pour RestTemplate
+rest:
+  client:
+    connect-timeout: 5000
+    read-timeout: 10000
+
+# Configuration WebSocket
+websocket:
+  allowed-origins: "*"
+  message-size-limit: 64000
+  send-time-limit: 20000
+  send-buffer-size-limit: 512000

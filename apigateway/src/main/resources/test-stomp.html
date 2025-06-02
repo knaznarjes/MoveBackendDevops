@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔔 Testeur de Notifications WebSocket</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-left: auto;
+        }
+
+        .status-disconnected {
+            background: #fee;
+            color: #d32f2f;
+        }
+
+        .status-connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-connecting {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .notifications-panel {
+            grid-column: 1 / -1;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4facfe;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification-item.unread {
+            border-left-color: #28a745;
+            background: #f8fff8;
+        }
+
+        .notification-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .notification-type {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+
+        .notification-time {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .notification-message {
+            color: #495057;
+            line-height: 1.5;
+        }
+
+        .logs-panel {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .log-info { color: #4facfe; }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-warning { color: #ffc107; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4facfe;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔔 Testeur de Notifications WebSocket</h1>
+        <p>Interface de test pour les notifications en temps réel</p>
+    </div>
+
+    <div class="main-content">
+        <!-- Configuration -->
+        <div class="section">
+            <h2>
+                ⚙️ Configuration
+                <span id="connectionStatus" class="connection-status status-disconnected">
+                        ❌ Déconnecté
+                    </span>
+            </h2>
+
+            <div class="form-group">
+                <label for="serverUrl">URL du serveur WebSocket:</label>
+                <input type="text" id="serverUrl" value="http://localhost:8085/ws" />
+            </div>
+
+            <div class="form-group">
+                <label for="userId">ID Utilisateur:</label>
+                <input type="text" id="userId" value="681cd822124a0a55ea7a1c67" />
+            </div>
+
+            <div class="form-group">
+                <label for="jwtToken">Token JWT:</label>
+                <textarea id="jwtToken" rows="3" placeholder="Collez votre token JWT ici...">eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI2ODFjZDgyMjEyNGEwYTU1ZWE3YTFjNjciLCJhdXRob3JpdGllcyI6WyJST0xFX1RSQVZFTEVSIl0sInN1YiI6ImFtaW5hQGdtYWlsLmNvbSIsImlhdCI6MTc0ODM0ODA1NSwiZXhwIjoxNzQ4MzkxMjU1fQ.CzBM2X8rPlCgT9K4kSHxLFCVtfm1KDdZB1dG7qg8O9E</textarea>
+            </div>
+
+            <button id="connectBtn" class="btn">
+                🔗 Se connecter
+            </button>
+            <button id="disconnectBtn" class="btn btn-danger" disabled>
+                🔌 Se déconnecter
+            </button>
+        </div>
+
+        <!-- Actions de test -->
+        <div class="section">
+            <h2>🧪 Actions de Test</h2>
+
+            <div class="form-group">
+                <label for="testMessage">Message de test:</label>
+                <input type="text" id="testMessage" value="Ceci est une notification de test" />
+            </div>
+
+            <div class="actions-grid">
+                <button id="sendTestBtn" class="btn btn-success" disabled>
+                    📤 Envoyer Test
+                </button>
+                <button id="clearNotificationsBtn" class="btn btn-warning">
+                    🗑️ Vider
+                </button>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="notificationType">Type de notification à simuler:</label>
+                <select id="notificationType">
+                    <option value="test">Test Simple</option>
+                    <option value="comment">Nouveau Commentaire</option>
+                    <option value="like">Nouveau Like</option>
+                    <option value="follow">Nouveau Follower</option>
+                    <option value="content">Nouveau Contenu</option>
+                </select>
+            </div>
+
+            <button id="simulateBtn" class="btn btn-warning" disabled>
+                🎭 Simuler Notification
+            </button>
+
+            <!-- Statistiques -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalNotifications">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="unreadNotifications">0</div>
+                    <div class="stat-label">Non lues</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications reçues -->
+        <div class="section notifications-panel">
+            <h2>📬 Notifications Reçues</h2>
+            <div id="notificationsList">
+                <p style="text-align: center; color: #6c757d; padding: 20px;">
+                    Aucune notification reçue. Connectez-vous pour commencer à recevoir des notifications.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="logs-panel">
+        <strong>📋 Logs de connexion:</strong>
+        <div id="logs"></div>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+    let isConnected = false;
+    let notifications = [];
+
+    // Éléments DOM
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const sendTestBtn = document.getElementById('sendTestBtn');
+    const simulateBtn = document.getElementById('simulateBtn');
+    const clearNotificationsBtn = document.getElementById('clearNotificationsBtn');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const notificationsList = document.getElementById('notificationsList');
+    const logsDiv = document.getElementById('logs');
+
+    // Event listeners
+    connectBtn.addEventListener('click', connect);
+    disconnectBtn.addEventListener('click', disconnect);
+    sendTestBtn.addEventListener('click', sendTestNotification);
+    simulateBtn.addEventListener('click', simulateNotification);
+    clearNotificationsBtn.addEventListener('click', clearNotifications);
+
+    function connect() {
+        const serverUrl = document.getElementById('serverUrl').value.trim();
+        const userId = document.getElementById('userId').value.trim();
+        const jwtToken = document.getElementById('jwtToken').value.trim();
+
+        if (!serverUrl || !userId || !jwtToken) {
+            addLog('Veuillez remplir tous les champs requis', 'error');
+            return;
+        }
+
+        updateConnectionStatus('connecting');
+        addLog('Tentative de connexion...', 'info');
+
+        try {
+            const socket = new SockJS(serverUrl);
+            stompClient = Stomp.over(socket);
+
+            // Configuration pour debug
+            stompClient.debug = function(str) {
+                addLog('STOMP: ' + str, 'info');
+            };
+
+            stompClient.connect(
+                {
+                    Authorization: "Bearer " + jwtToken
+                },
+                function (frame) {
+                    isConnected = true;
+                    updateConnectionStatus('connected');
+                    addLog('✅ Connexion WebSocket établie avec succès!', 'success');
+                    addLog('Frame: ' + frame, 'info');
+
+                    // S'abonner aux notifications
+                    stompClient.subscribe("/topic/notifications/" + userId, function (message) {
+                        addLog('📨 Notification reçue: ' + message.body, 'success');
+                        handleNotification(JSON.parse(message.body));
+                    });
+
+                    addLog('🔔 Abonnement aux notifications pour l\'utilisateur: ' + userId, 'success');
+
+                    // Activer les boutons
+                    sendTestBtn.disabled = false;
+                    simulateBtn.disabled = false;
+                },
+                function (error) {
+                    isConnected = false;
+                    updateConnectionStatus('disconnected');
+                    addLog('❌ Erreur de connexion WebSocket: ' + error, 'error');
+                    console.error('Erreur WebSocket:', error);
+                }
+            );
+        } catch (error) {
+            addLog('❌ Erreur lors de l\'initialisation: ' + error.message, 'error');
+            updateConnectionStatus('disconnected');
+        }
+    }
+
+    function disconnect() {
+        if (stompClient && stompClient.connected) {
+            stompClient.disconnect(function() {
+                addLog('🔌 Connexion fermée', 'warning');
+            });
+        }
+        isConnected = false;
+        updateConnectionStatus('disconnected');
+        sendTestBtn.disabled = true;
+        simulateBtn.disabled = true;
+    }
+
+    function sendTestNotification() {
+        if (!isConnected) {
+            addLog('❌ Pas de connexion active', 'error');
+            return;
+        }
+
+        const userId = document.getElementById('userId').value.trim();
+        const message = document.getElementById('testMessage').value.trim();
+
+        const testPayload = {
+            userId: userId,
+            message: message
+        };
+
+        try {
+            stompClient.send("/app/notifications/test", {}, JSON.stringify(testPayload));
+            addLog('📤 Notification de test envoyée', 'info');
+        } catch (error) {
+            addLog('❌ Erreur lors de l\'envoi: ' + error.message, 'error');
+        }
+    }
+
+    function simulateNotification() {
+        const type = document.getElementById('notificationType').value;
+        const userId = document.getElementById('userId').value.trim();
+
+        let simulatedNotification;
+
+        switch(type) {
+            case 'comment':
+                simulatedNotification = {
+                    id: generateId(),
+                    userId: userId,
+                    message: "Jean Dupont a commenté votre publication",
+                    sourceName: "Jean Dupont",
+                    type: "COMMENT",
+                    isRead: false,
+                    createdAt: new Date().toISOString()
+                };
+                break;
+            case 'like':
+                simulatedNotification = {
+                    id: generateId(),
+                    userId: userId,
+                    message: "Marie Martin a aimé votre contenu",
+                    sourceName: "Marie Martin",
+                    type: "LIKE",
+                    isRead: false,
+                    createdAt: new Date().toISOString()
+                };
+                break;
+            case 'follow':
+                simulatedNotification = {
+                    id: generateId(),
+                    userId: userId,
+                    message: "Pierre Dubois vous suit maintenant",
+                    sourceName: "Pierre Dubois",
+                    type: "FOLLOW",
+                    isRead: false,
+                    createdAt: new Date().toISOString()
+                };
+                break;
+            case 'content':
+                simulatedNotification = {
+                    id: generateId(),
+                    userId: userId,
+                    message: "Alex Martin a publié du nouveau contenu",
+                    sourceName: "Alex Martin",
+                    type: "NEW_CONTENT",
+                    isRead: false,
+                    createdAt: new Date().toISOString()
+                };
+                break;
+            default:
+                simulatedNotification = {
+                    id: generateId(),
+                    userId: userId,
+                    message: document.getElementById('testMessage').value,
+                    sourceName: "Système",
+                    type: "TEST",
+                    isRead: false,
+                    createdAt: new Date().toISOString()
+                };
+        }
+
+        handleNotification(simulatedNotification);
+        addLog('🎭 Notification simulée: ' + type.toUpperCase(), 'warning');
+    }
+
+    function handleNotification(notification) {
+        notifications.unshift(notification);
+        displayNotifications();
+        updateStats();
+
+        // Animation et son (optionnel)
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Nouvelle notification', {
+                body: notification.message,
+                icon: '🔔'
+            });
+        }
+    }
+
+    function displayNotifications() {
+        if (notifications.length === 0) {
+            notificationsList.innerHTML = `
+                    <p style="text-align: center; color: #6c757d; padding: 20px;">
+                        Aucune notification reçue.
+                    </p>
+                `;
+            return;
+        }
+
+        notificationsList.innerHTML = notifications.map(notif => `
+                <div class="notification-item ${!notif.isRead ? 'unread' : ''}">
+                    <div class="notification-meta">
+                        <span class="notification-type">${getTypeIcon(notif.type)} ${notif.type || 'GENERAL'}</span>
+                        <span class="notification-time">${formatTime(notif.createdAt)}</span>
+                    </div>
+                    <div class="notification-message">
+                        ${notif.message}
+                        ${notif.sourceName ? `<br><small>De: ${notif.sourceName}</small>` : ''}
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    function updateConnectionStatus(status) {
+        const statusText = {
+            'connected': '✅ Connecté',
+            'connecting': '🔄 Connexion...',
+            'disconnected': '❌ Déconnecté'
+        };
+
+        connectionStatus.textContent = statusText[status];
+        connectionStatus.className = `connection-status status-${status}`;
+
+        connectBtn.disabled = status === 'connected' || status === 'connecting';
+        disconnectBtn.disabled = status === 'disconnected';
+    }
+
+    function updateStats() {
+        document.getElementById('totalNotifications').textContent = notifications.length;
+        document.getElementById('unreadNotifications').textContent =
+            notifications.filter(n => !n.isRead).length;
+    }
+
+    function clearNotifications() {
+        notifications = [];
+        displayNotifications();
+        updateStats();
+        addLog('🗑️ Notifications vidées', 'warning');
+    }
+
+    function addLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry log-${type}`;
+        logEntry.textContent = `[${timestamp}] ${message}`;
+
+        logsDiv.appendChild(logEntry);
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+
+        // Limiter le nombre de logs
+        if (logsDiv.children.length > 50) {
+            logsDiv.removeChild(logsDiv.firstChild);
+        }
+    }
+
+    function getTypeIcon(type) {
+        const icons = {
+            'COMMENT': '💬',
+            'LIKE': '❤️',
+            'FOLLOW': '👥',
+            'NEW_CONTENT': '📝',
+            'TEST': '🧪'
+        };
+        return icons[type] || '🔔';
+    }
+
+    function formatTime(dateString) {
+        if (!dateString) return 'Maintenant';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+
+        if (diff < 60) return 'Il y a moins d\'une minute';
+        if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
+        if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
+        return date.toLocaleDateString('fr-FR');
+    }
+
+    function generateId() {
+        return 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // Demander la permission pour les notifications navigateur
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+
+    // Initialisation
+    updateStats();
+    addLog('🚀 Interface de test initialisée', 'info');
+    addLog('💡 Conseil: Connectez-vous d\'abord, puis testez les notifications', 'info');
+</script>
+</body>
+</html>
