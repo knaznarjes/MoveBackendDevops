@@ -37,8 +37,6 @@ pipeline {
             }
         }
 
-   
-
         stage('Build & Test Services') {
             parallel {
                 stage('Discovery Service') {
@@ -263,9 +261,9 @@ pipeline {
                         }
                     }
                 }
-
-             
- 
+            }
+        }
+    }
      
     post {
         always {
